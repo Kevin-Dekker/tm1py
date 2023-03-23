@@ -216,7 +216,7 @@ class CellService(ObjectService):
                     else:
                         hierarchy_name = dimension_name
                         element_name = element_selection
-                    
+
                     element_definition = Member.of(dimension_name, hierarchy_name, element_name)
                     mdx_strings_list.append("{" + element_definition.unique_name + "}")
 
@@ -246,9 +246,9 @@ class CellService(ObjectService):
     def _compose_odata_tuple_from_string(self, cube_name: str,
                                          element_string: str,
                                          dimensions: Iterable[str] = None,
-                                         element_separator: str = ",", 
-                                         hierarchy_separator: str = "&&", 
-                                         hierarchy_element_separator: str = "::", 
+                                         element_separator: str = ",",
+                                         hierarchy_separator: str = "&&",
+                                         hierarchy_element_separator: str = "::",
                                          **kwargs) -> OrderedDict:
         if not dimensions:
             dimensions = self.get_dimension_names_for_writing(cube_name=cube_name)
@@ -298,9 +298,9 @@ class CellService(ObjectService):
                                dimensions: Iterable[str] = None,
                                sandbox_name: str = None,
                                depth: int = 1,
-                               element_separator: str = ",", 
-                               hierarchy_separator: str = "&&", 
-                               hierarchy_element_separator: str = "::", 
+                               element_separator: str = ",",
+                               hierarchy_separator: str = "&&",
+                               hierarchy_element_separator: str = "::",
                                **kwargs) -> Dict:
 
         """ Trace cell calculation at specified coordinates
@@ -339,11 +339,11 @@ class CellService(ObjectService):
 
         url = add_url_parameters(url, **{"!sandbox": sandbox_name})
         if isinstance(elements, str):
-            body_as_dict = self._compose_odata_tuple_from_string(cube_name, 
-                                                                 elements, 
-                                                                 dimensions, 
-                                                                 element_separator, 
-                                                                 hierarchy_separator, 
+            body_as_dict = self._compose_odata_tuple_from_string(cube_name,
+                                                                 elements,
+                                                                 dimensions,
+                                                                 element_separator,
+                                                                 hierarchy_separator,
                                                                  hierarchy_element_separator)
         else:
             body_as_dict = self._compose_odata_tuple_from_iterable(cube_name, elements, dimensions)
@@ -355,9 +355,9 @@ class CellService(ObjectService):
                                elements: Union[Iterable,str],
                                dimensions: Iterable[str] = None,
                                sandbox_name: str = None,
-                               element_separator: str = ",", 
-                               hierarchy_separator: str = "&&", 
-                               hierarchy_element_separator: str = "::", 
+                               element_separator: str = ",",
+                               hierarchy_separator: str = "&&",
+                               hierarchy_element_separator: str = "::",
                                **kwargs) -> Dict:
 
         """ Trace feeders from a cell
@@ -385,11 +385,11 @@ class CellService(ObjectService):
 
         url = add_url_parameters(url, **{"!sandbox": sandbox_name})
         if isinstance(elements, str):
-            body_as_dict = self._compose_odata_tuple_from_string(cube_name, 
-                                                                 elements, 
-                                                                 dimensions, 
-                                                                 element_separator, 
-                                                                 hierarchy_separator, 
+            body_as_dict = self._compose_odata_tuple_from_string(cube_name,
+                                                                 elements,
+                                                                 dimensions,
+                                                                 element_separator,
+                                                                 hierarchy_separator,
                                                                  hierarchy_element_separator)
         else:
             body_as_dict = self._compose_odata_tuple_from_iterable(cube_name, elements, dimensions)
@@ -401,9 +401,9 @@ class CellService(ObjectService):
                                elements: Union[Iterable,str],
                                dimensions: Iterable[str] = None,
                                sandbox_name: str = None,
-                               element_separator: str = ",", 
-                               hierarchy_separator: str = "&&", 
-                               hierarchy_element_separator: str = "::", 
+                               element_separator: str = ",",
+                               hierarchy_separator: str = "&&",
+                               hierarchy_element_separator: str = "::",
                                **kwargs) -> Dict:
 
         """ Check feeders
@@ -431,11 +431,11 @@ class CellService(ObjectService):
 
         url = add_url_parameters(url, **{"!sandbox": sandbox_name})
         if isinstance(elements, str):
-            body_as_dict = self._compose_odata_tuple_from_string(cube_name, 
-                                                                 elements, 
-                                                                 dimensions, 
-                                                                 element_separator, 
-                                                                 hierarchy_separator, 
+            body_as_dict = self._compose_odata_tuple_from_string(cube_name,
+                                                                 elements,
+                                                                 dimensions,
+                                                                 element_separator,
+                                                                 hierarchy_separator,
                                                                  hierarchy_element_separator)
         else:
             body_as_dict = self._compose_odata_tuple_from_iterable(cube_name, elements, dimensions)
@@ -1673,7 +1673,7 @@ class CellService(ObjectService):
     def execute_mdx_dataframe(self, mdx: str, top: int = None, skip: int = None, skip_zeros: bool = True,
                               skip_consolidated_cells: bool = False, skip_rule_derived_cells: bool = False,
                               sandbox_name: str = None, include_attributes: bool = False,
-                              use_iterative_json: bool = False, use_compact_json: bool = False,
+                              use_iterative_json: bool = False, use_compact_json: bool = False, shaped:bool=False,
                               **kwargs) -> 'pd.DataFrame':
         """ Optimized for performance. Get Pandas DataFrame from MDX Query.
 
@@ -1699,6 +1699,7 @@ class CellService(ObjectService):
                                               skip_rule_derived_cells=skip_rule_derived_cells,
                                               sandbox_name=sandbox_name, include_attributes=include_attributes,
                                               use_iterative_json=use_iterative_json, use_compact_json=use_compact_json,
+                                              shaped=shaped,
                                               **kwargs)
 
     @require_pandas
@@ -2754,6 +2755,7 @@ class CellService(ObjectService):
             include_attributes: bool = False,
             use_iterative_json: bool = False,
             use_compact_json: bool = False,
+            shaped:bool = False,
             **kwargs) -> 'pd.DataFrame':
         """ Build pandas data frame from cellset_id
 
@@ -2793,7 +2795,13 @@ class CellService(ObjectService):
         # make sure all element names are strings and values column is derived from data
         if 'dtype' not in kwargs:
             kwargs['dtype'] = {'Value': None, **{col: str for col in range(999)}}
-        return pd.read_csv(memory_file, sep='~', na_values=["", None], keep_default_na=False, **kwargs)
+
+        if shaped:
+            col_names = raw_csv[:raw_csv.find('\r')].split('~')
+            df = pd.read_csv(memory_file, sep='~', na_values=["", None], keep_default_na=False, **kwargs)
+            return df.pivot(index=df.columns[:-2].to_list(), columns=df.columns[-2]).droplevel(0, axis=1).reset_index()
+        else:
+            return pd.read_csv(memory_file, sep='~', na_values=["", None], keep_default_na=False, **kwargs)
 
     @tidy_cellset
     @require_pandas
